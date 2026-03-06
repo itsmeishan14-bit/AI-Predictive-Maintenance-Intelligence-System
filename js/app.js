@@ -311,7 +311,23 @@ const App = (() => {
         });
     }
 
-    return { init, navigateTo, showMachineDetail, handleNotifClick, clearNotifications };
+    function toggleSound() {
+        const isEnabled = SoundFX.toggle();
+        const iconOn = document.getElementById('sound-icon-on');
+        const iconOff = document.getElementById('sound-icon-off');
+        const btn = document.getElementById('btn-sound');
+        if (iconOn) iconOn.style.display = isEnabled ? '' : 'none';
+        if (iconOff) iconOff.style.display = isEnabled ? 'none' : '';
+        if (btn) btn.classList.toggle('active', !isEnabled);
+        if (isEnabled) {
+            SoundFX.hoverClick();
+            Animations.showToast('🔊 Sound enabled', 'success');
+        } else {
+            Animations.showToast('🔇 Sound muted', 'info');
+        }
+    }
+
+    return { init, navigateTo, showMachineDetail, handleNotifClick, clearNotifications, toggleSound };
 })();
 
 document.addEventListener('DOMContentLoaded', App.init);

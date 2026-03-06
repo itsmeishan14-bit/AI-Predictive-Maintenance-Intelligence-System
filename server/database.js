@@ -27,6 +27,8 @@ const SENSOR_RANGES = {
     current: { min: 5, max: 50, unit: 'A', warn: 40, crit: 47 }
 };
 
+let alertCounter = 8; // Tracks next alert ID to avoid collisions
+
 const alerts = [
     { id: 'ALT-001', type: 'critical', machine: 'LTH-002', title: 'Bearing Failure Imminent', desc: 'Vibration anomaly detected — predicted bearing failure within 48 hours.', time: Date.now() - 120000, sensor: 'vibration', value: 7.2, acknowledged: false },
     { id: 'ALT-002', type: 'warning', machine: 'CNC-002', title: 'Spindle Temperature Rising', desc: 'Spindle temperature trending 18% above baseline.', time: Date.now() - 900000, sensor: 'temperature', value: 92, acknowledged: false },
@@ -140,9 +142,14 @@ function updateSystemStatus() {
     systemStatus.inferenceLatency = +(6 + Math.random() * 6).toFixed(1);
     systemStatus.throughput = Math.round(800 + Math.random() * 200);
     systemStatus.modelConfidence = +(92 + Math.random() * 6).toFixed(1);
-    systemStatus.dataIngested += +(0.02 + Math.random() * 0.05).toFixed(2);
+    systemStatus.dataIngested = parseFloat((systemStatus.dataIngested + 0.02 + Math.random() * 0.05).toFixed(2));
     systemStatus.uptime = Math.floor((Date.now() - systemStatus.serverStartTime) / 1000);
     return { ...systemStatus };
+}
+
+function nextAlertId() {
+    alertCounter++;
+    return 'ALT-' + String(alertCounter).padStart(3, '0');
 }
 
 module.exports = {
@@ -155,5 +162,6 @@ module.exports = {
     getAllReadings,
     getKPIs,
     systemStatus,
-    updateSystemStatus
+    updateSystemStatus,
+    nextAlertId
 };

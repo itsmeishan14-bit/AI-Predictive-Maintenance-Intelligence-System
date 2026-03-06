@@ -84,6 +84,12 @@ app.get('/api', (req, res) => {
 // ── Static Files (Frontend) ──
 app.use(express.static(path.join(__dirname)));
 
+// ── Global Error Handler ──
+app.use((err, req, res, next) => {
+    console.error('[Server] Unhandled error:', err.message);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+});
+
 // SPA fallback
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
@@ -117,4 +123,14 @@ server.listen(PORT, () => {
     // Auto-start the agent
     agent.start();
     console.log('[Agent] Autonomous AI agent started.');
+});
+
+// ── Process-Level Error Handlers ──
+process.on('uncaughtException', (err) => {
+    console.error('[FATAL] Uncaught exception:', err.message);
+    console.error(err.stack);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('[FATAL] Unhandled rejection:', reason);
 });
