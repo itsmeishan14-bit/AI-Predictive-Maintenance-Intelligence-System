@@ -43,10 +43,15 @@ router.get('/decisions', (req, res) => {
 
 // POST /api/agent/ask — Ask the agent a question
 router.post('/ask', async (req, res) => {
-    const { question } = req.body;
-    if (!question) return res.status(400).json({ success: false, error: 'question is required' });
-    const answer = await agent.ask(question);
-    res.json({ success: true, data: { question, answer, timestamp: Date.now() } });
+    try {
+        const { question } = req.body;
+        if (!question) return res.status(400).json({ success: false, error: 'question is required' });
+        const answer = await agent.ask(question);
+        res.json({ success: true, data: { question, answer, timestamp: Date.now() } });
+    } catch (err) {
+        console.error('[Agent] Ask error:', err);
+        res.status(500).json({ success: false, error: 'Agent encountered an error: ' + err.message });
+    }
 });
 
 module.exports = router;

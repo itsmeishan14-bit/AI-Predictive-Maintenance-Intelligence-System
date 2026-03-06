@@ -4,16 +4,16 @@
 // ============================================
 
 const AIAgent = (() => {
-    let agentLogListener = null;
-    let agentInsightListener = null;
-    let agentStatusListener = null;
-    let statusPollTimer = null;
+  let agentLogListener = null;
+  let agentInsightListener = null;
+  let agentStatusListener = null;
+  let statusPollTimer = null;
 
-    function render() {
-        const container = document.getElementById('view-agent');
-        if (!container) return;
+  function render() {
+    const container = document.getElementById('view-agent');
+    if (!container) return;
 
-        container.innerHTML = `
+    container.innerHTML = `
       <!-- Agent Hero -->
       <div class="agent-hero holo-card animate-in">
         <div class="scanline-overlay"></div>
@@ -134,117 +134,136 @@ const AIAgent = (() => {
       </div>
     `;
 
-        // Setup WebSocket listeners
-        setupListeners();
-        // Fetch initial state
-        fetchStatus();
-        fetchLogs();
-        fetchInsights();
-        fetchDecisions();
-        // Poll status
-        statusPollTimer = setInterval(fetchStatus, 3000);
-    }
+    // Setup WebSocket listeners
+    setupListeners();
+    // Fetch initial state
+    fetchStatus();
+    fetchLogs();
+    fetchInsights();
+    fetchDecisions();
+    // Poll status
+    statusPollTimer = setInterval(fetchStatus, 3000);
+  }
 
-    function setupListeners() {
-        // Agent log stream
-        agentLogListener = (data) => appendLog(data);
-        API.on('ws:agent_log', agentLogListener);
+  function setupListeners() {
+    // Agent log stream
+    agentLogListener = (data) => appendLog(data);
+    API.on('ws:agent_log', agentLogListener);
 
-        agentInsightListener = (data) => prependInsight(data);
-        API.on('ws:agent_insight', agentInsightListener);
+    agentInsightListener = (data) => prependInsight(data);
+    API.on('ws:agent_insight', agentInsightListener);
 
-        agentStatusListener = (data) => updateStatusUI(data);
-        API.on('ws:agent_status', agentStatusListener);
+    agentStatusListener = (data) => updateStatusUI(data);
+    API.on('ws:agent_status', agentStatusListener);
 
-        API.on('ws:agent_cycle_complete', (data) => {
-            SoundFX.dataFlowTick();
-        });
-    }
+    API.on('ws:agent_cycle_complete', (data) => {
+      SoundFX.dataFlowTick();
+    });
+  }
 
-    async function toggleAgent() {
-        const btn = document.getElementById('agent-btn-toggle');
-        const chip = document.getElementById('agent-status-chip');
-        const statusRes = await API.get('/api/agent/status');
-        const isRunning = statusRes?.data?.status === 'running';
+  async function toggleAgent() {
+    try {
+      const btn = document.getElementById('agent-btn-toggle');
+      const chip = document.getElementById('agent-status-chip');
+      const statusRes = await API.get('/api/agent/status');
 
-        if (isRunning) {
-            await API.post('/api/agent/stop', {});
-            SoundFX.alertBeep();
-            Animations.showToast('🤖 Agent paused — autonomous monitoring suspended.', 'info');
+      if (!statusRes?.success) {
+        Animations.showToast('⚠️ Cannot reach the server. Please make sure the server is running (npm start).', 'error');
+        return;
+      }
+
+      const isRunning = statusRes?.data?.status === 'running';
+
+      if (isRunning) {
+        const stopRes = await API.post('/api/agent/stop', {});
+        if (stopRes?.success) {
+          SoundFX.alertBeep();
+          Animations.showToast('🤖 Agent paused — autonomous monitoring suspended.', 'info');
         } else {
-            await API.post('/api/agent/start', {});
-            SoundFX.successBeep();
-            Animations.showToast('🤖 Agent activated — autonomous monitoring started!', 'success');
+          Animations.showToast('⚠️ Failed to stop agent: ' + (stopRes?.error || 'Unknown error'), 'error');
         }
-        fetchStatus();
-    }
-
-    async function fetchStatus() {
-        const res = await API.get('/api/agent/status');
-        if (res?.success) updateStatusUI(res.data);
-    }
-
-    function updateStatusUI(data) {
-        if (!data) return;
-        const btn = document.getElementById('agent-btn-toggle');
-        const statusText = document.getElementById('agent-status-text');
-        const statusDot = document.querySelector('.agent-status-dot');
-        const avatar = document.getElementById('agent-avatar');
-        const thinkingBar = document.getElementById('agent-thinking-bar');
-        const thinkingText = document.getElementById('agent-thinking-text');
-
-        const isRunning = data.status === 'running';
-
-        if (btn) {
-            btn.innerHTML = isRunning
-                ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> Pause Agent'
-                : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> Start Agent';
-            btn.className = isRunning ? 'btn btn-ghost agent-btn-start' : 'btn btn-primary agent-btn-start';
+      } else {
+        const startRes = await API.post('/api/agent/start', {});
+        if (startRes?.success) {
+          SoundFX.successBeep();
+          Animations.showToast('🤖 Agent activated — autonomous monitoring started!', 'success');
+        } else {
+          Animations.showToast('⚠️ Failed to start agent: ' + (startRes?.error || 'Unknown error'), 'error');
         }
-        if (statusText) statusText.textContent = isRunning ? 'Running' : 'Idle';
-        if (statusDot) { statusDot.className = 'agent-status-dot ' + (isRunning ? 'running' : 'idle'); }
-        if (avatar) avatar.className = isRunning ? 'agent-avatar active' : 'agent-avatar';
-        if (thinkingBar) {
-            thinkingBar.style.display = isRunning ? 'flex' : 'none';
-        }
-        if (thinkingText && data.currentTask) thinkingText.textContent = data.currentTask;
-
-        // Stats
-        const el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
-        el('agent-cycles', data.cycleCount || 0);
-        el('agent-inferences', data.totalInferences || 0);
-        el('agent-anomalies', data.anomaliesDetected || 0);
-        el('agent-decisions-count', data.decisionsCount || 0);
+      }
+      fetchStatus();
+    } catch (err) {
+      console.error('[Agent] Toggle error:', err);
+      Animations.showToast('⚠️ Cannot reach the server. Please make sure the server is running (npm start).', 'error');
     }
+  }
 
-    async function fetchLogs() {
-        const res = await API.get('/api/agent/logs?limit=30');
-        if (!res?.success || !res.data.length) return;
-        const list = document.getElementById('agent-log-list');
-        if (!list) return;
-        list.innerHTML = '';
-        res.data.forEach(log => appendLog(log, false));
-        const badge = document.getElementById('agent-log-badge');
-        if (badge) badge.textContent = res.data.length + ' entries';
+  async function fetchStatus() {
+    const res = await API.get('/api/agent/status');
+    if (res?.success) updateStatusUI(res.data);
+  }
+
+  function updateStatusUI(data) {
+    if (!data) return;
+    const btn = document.getElementById('agent-btn-toggle');
+    const statusText = document.getElementById('agent-status-text');
+    const statusDot = document.querySelector('.agent-status-dot');
+    const avatar = document.getElementById('agent-avatar');
+    const thinkingBar = document.getElementById('agent-thinking-bar');
+    const thinkingText = document.getElementById('agent-thinking-text');
+
+    const isRunning = data.status === 'running';
+
+    if (btn) {
+      btn.innerHTML = isRunning
+        ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> Pause Agent'
+        : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> Start Agent';
+      btn.className = isRunning ? 'btn btn-ghost agent-btn-start' : 'btn btn-primary agent-btn-start';
     }
-
-    async function fetchInsights() {
-        const res = await API.get('/api/agent/insights?limit=10');
-        if (!res?.success || !res.data.length) return;
-        const list = document.getElementById('agent-insights-list');
-        if (!list) return;
-        list.innerHTML = '';
-        res.data.forEach(ins => prependInsight(ins, false));
-        const badge = document.getElementById('agent-insights-badge');
-        if (badge) badge.textContent = res.data.length + ' insights';
+    if (statusText) statusText.textContent = isRunning ? 'Running' : 'Idle';
+    if (statusDot) { statusDot.className = 'agent-status-dot ' + (isRunning ? 'running' : 'idle'); }
+    if (avatar) avatar.className = isRunning ? 'agent-avatar active' : 'agent-avatar';
+    if (thinkingBar) {
+      thinkingBar.style.display = isRunning ? 'flex' : 'none';
     }
+    if (thinkingText && data.currentTask) thinkingText.textContent = data.currentTask;
 
-    async function fetchDecisions() {
-        const res = await API.get('/api/agent/decisions?limit=10');
-        if (!res?.success || !res.data.length) return;
-        const list = document.getElementById('agent-decisions-list');
-        if (!list) return;
-        list.innerHTML = res.data.map(d => `
+    // Stats
+    const el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+    el('agent-cycles', data.cycleCount || 0);
+    el('agent-inferences', data.totalInferences || 0);
+    el('agent-anomalies', data.anomaliesDetected || 0);
+    el('agent-decisions-count', data.decisionsCount || 0);
+  }
+
+  async function fetchLogs() {
+    const res = await API.get('/api/agent/logs?limit=30');
+    if (!res?.success || !res.data.length) return;
+    const list = document.getElementById('agent-log-list');
+    if (!list) return;
+    list.innerHTML = '';
+    res.data.forEach(log => appendLog(log, false));
+    const badge = document.getElementById('agent-log-badge');
+    if (badge) badge.textContent = res.data.length + ' entries';
+  }
+
+  async function fetchInsights() {
+    const res = await API.get('/api/agent/insights?limit=10');
+    if (!res?.success || !res.data.length) return;
+    const list = document.getElementById('agent-insights-list');
+    if (!list) return;
+    list.innerHTML = '';
+    res.data.forEach(ins => prependInsight(ins, false));
+    const badge = document.getElementById('agent-insights-badge');
+    if (badge) badge.textContent = res.data.length + ' insights';
+  }
+
+  async function fetchDecisions() {
+    const res = await API.get('/api/agent/decisions?limit=10');
+    if (!res?.success || !res.data.length) return;
+    const list = document.getElementById('agent-decisions-list');
+    if (!list) return;
+    list.innerHTML = res.data.map(d => `
       <div class="agent-decision-card ${d.priority === 'URGENT' ? 'urgent' : ''}">
         <div class="agent-decision-header">
           <span class="agent-decision-priority ${d.priority.toLowerCase()}">${d.priority}</span>
@@ -255,48 +274,48 @@ const AIAgent = (() => {
         <div class="agent-decision-deadline">Deadline: ${new Date(d.deadline).toLocaleDateString()}</div>
       </div>
     `).join('');
-    }
+  }
 
-    function appendLog(log, animate = true) {
-        const list = document.getElementById('agent-log-list');
-        if (!list) return;
-        // Remove empty state
-        const empty = list.querySelector('.agent-empty-state');
-        if (empty) empty.remove();
+  function appendLog(log, animate = true) {
+    const list = document.getElementById('agent-log-list');
+    if (!list) return;
+    // Remove empty state
+    const empty = list.querySelector('.agent-empty-state');
+    if (empty) empty.remove();
 
-        const icons = { system: '⚙️', thinking: '🧠', insight: '💡', decision: '📋', alert: '🚨', summary: '📊', user: '👤', agent: '🤖' };
-        const entry = document.createElement('div');
-        entry.className = 'agent-log-entry' + (animate ? ' animate-in' : '');
-        const time = new Date(log.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        entry.innerHTML = `
+    const icons = { system: '⚙️', thinking: '🧠', insight: '💡', decision: '📋', alert: '🚨', summary: '📊', user: '👤', agent: '🤖' };
+    const entry = document.createElement('div');
+    entry.className = 'agent-log-entry' + (animate ? ' animate-in' : '');
+    const time = new Date(log.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    entry.innerHTML = `
       <span class="agent-log-icon">${icons[log.type] || '📝'}</span>
       <div class="agent-log-content">
         <div class="agent-log-text">${formatMd(log.message)}</div>
         <div class="agent-log-time">${time}</div>
       </div>
     `;
-        list.appendChild(entry);
-        list.scrollTop = list.scrollHeight;
+    list.appendChild(entry);
+    list.scrollTop = list.scrollHeight;
 
-        // Update badge
-        const badge = document.getElementById('agent-log-badge');
-        if (badge) {
-            const count = list.querySelectorAll('.agent-log-entry').length;
-            badge.textContent = count + ' entries';
-        }
+    // Update badge
+    const badge = document.getElementById('agent-log-badge');
+    if (badge) {
+      const count = list.querySelectorAll('.agent-log-entry').length;
+      badge.textContent = count + ' entries';
     }
+  }
 
-    function prependInsight(insight, animate = true) {
-        const list = document.getElementById('agent-insights-list');
-        if (!list) return;
-        const empty = list.querySelector('.agent-empty-state');
-        if (empty) empty.remove();
+  function prependInsight(insight, animate = true) {
+    const list = document.getElementById('agent-insights-list');
+    if (!list) return;
+    const empty = list.querySelector('.agent-empty-state');
+    if (empty) empty.remove();
 
-        const severityColors = { high: 'var(--accent-red)', medium: 'var(--accent-amber)', info: 'var(--accent-cyan)' };
-        const card = document.createElement('div');
-        card.className = 'agent-insight-card' + (animate ? ' animate-in' : '');
-        const time = new Date(insight.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-        card.innerHTML = `
+    const severityColors = { high: 'var(--accent-red)', medium: 'var(--accent-amber)', info: 'var(--accent-cyan)' };
+    const card = document.createElement('div');
+    card.className = 'agent-insight-card' + (animate ? ' animate-in' : '');
+    const time = new Date(insight.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    card.innerHTML = `
       <div class="agent-insight-header">
         <span class="agent-insight-type" style="color:${severityColors[insight.severity] || severityColors.info}">${insight.type?.toUpperCase() || 'INSIGHT'}</span>
         <span class="agent-insight-time">${time}</span>
@@ -305,64 +324,70 @@ const AIAgent = (() => {
       <div class="agent-insight-text">${formatMd(insight.text || '')}</div>
       ${insight.machine ? `<span class="agent-insight-machine">${insight.machine}</span>` : ''}
     `;
-        list.insertBefore(card, list.firstChild);
+    list.insertBefore(card, list.firstChild);
 
-        const badge = document.getElementById('agent-insights-badge');
-        if (badge) {
-            const count = list.querySelectorAll('.agent-insight-card').length;
-            badge.textContent = count + ' insights';
-        }
+    const badge = document.getElementById('agent-insights-badge');
+    if (badge) {
+      const count = list.querySelectorAll('.agent-insight-card').length;
+      badge.textContent = count + ' insights';
     }
+  }
 
-    async function askAgent() {
-        const input = document.getElementById('agent-ask-input');
-        const responseDiv = document.getElementById('agent-ask-response');
-        if (!input || !responseDiv) return;
-        const question = input.value.trim();
-        if (!question) return;
-        input.value = '';
+  async function askAgent() {
+    const input = document.getElementById('agent-ask-input');
+    const responseDiv = document.getElementById('agent-ask-response');
+    if (!input || !responseDiv) return;
+    const question = input.value.trim();
+    if (!question) return;
+    input.value = '';
 
-        responseDiv.innerHTML = '<div class="agent-ask-thinking"><div class="typing-dots"><span></span><span></span><span></span></div> Agent is thinking...</div>';
-        SoundFX.hoverClick();
+    responseDiv.innerHTML = '<div class="agent-ask-thinking"><div class="typing-dots"><span></span><span></span><span></span></div> Agent is thinking...</div>';
+    SoundFX.hoverClick();
 
-        const res = await API.post('/api/agent/ask', { question });
-        if (res?.success) {
-            responseDiv.innerHTML = `
-        <div class="agent-ask-q">🗣️ ${escHtml(question)}</div>
-        <div class="agent-ask-a">🤖 ${formatMd(res.data.answer)}</div>
-      `;
-            SoundFX.predictionBeep();
-        } else {
-            responseDiv.innerHTML = '<div class="agent-ask-a" style="color:var(--accent-red)">❌ Failed to reach the agent. Is the server running?</div>';
-        }
+    try {
+      const res = await API.post('/api/agent/ask', { question });
+      if (res?.success && res?.data?.answer) {
+        responseDiv.innerHTML = `
+            <div class="agent-ask-q">🗣️ ${escHtml(question)}</div>
+            <div class="agent-ask-a">🤖 ${formatMd(res.data.answer)}</div>
+          `;
+        SoundFX.predictionBeep();
+      } else {
+        const errorMsg = res?.error || 'The agent could not process your request. Please try again.';
+        responseDiv.innerHTML = `<div class="agent-ask-a" style="color:var(--accent-amber)">⚠️ ${escHtml(errorMsg)}</div>`;
+      }
+    } catch (err) {
+      console.error('[Agent] Ask error:', err);
+      responseDiv.innerHTML = '<div class="agent-ask-a" style="color:var(--accent-red)">❌ Cannot connect to the server. Please ensure the backend is running with <code>npm start</code>.</div>';
     }
+  }
 
-    function quickAsk(question) {
-        document.getElementById('agent-ask-input').value = question;
-        askAgent();
-    }
+  function quickAsk(question) {
+    document.getElementById('agent-ask-input').value = question;
+    askAgent();
+  }
 
-    function formatMd(text) {
-        return (text || '')
-            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.+?)\*/g, '<em>$1</em>')
-            .replace(/`(.+?)`/g, '<code>$1</code>')
-            .replace(/\n\n/g, '<br><br>')
-            .replace(/\n/g, '<br>');
-    }
+  function formatMd(text) {
+    return (text || '')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`(.+?)`/g, '<code>$1</code>')
+      .replace(/\n\n/g, '<br><br>')
+      .replace(/\n/g, '<br>');
+  }
 
-    function escHtml(t) { return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function escHtml(t) { return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
-    function cleanup() {
-        if (agentLogListener) API.off('ws:agent_log', agentLogListener);
-        if (agentInsightListener) API.off('ws:agent_insight', agentInsightListener);
-        if (agentStatusListener) API.off('ws:agent_status', agentStatusListener);
-        if (statusPollTimer) clearInterval(statusPollTimer);
-        agentLogListener = null;
-        agentInsightListener = null;
-        agentStatusListener = null;
-        statusPollTimer = null;
-    }
+  function cleanup() {
+    if (agentLogListener) API.off('ws:agent_log', agentLogListener);
+    if (agentInsightListener) API.off('ws:agent_insight', agentInsightListener);
+    if (agentStatusListener) API.off('ws:agent_status', agentStatusListener);
+    if (statusPollTimer) clearInterval(statusPollTimer);
+    agentLogListener = null;
+    agentInsightListener = null;
+    agentStatusListener = null;
+    statusPollTimer = null;
+  }
 
-    return { render, toggleAgent, askAgent, quickAsk, cleanup };
+  return { render, toggleAgent, askAgent, quickAsk, cleanup };
 })();
