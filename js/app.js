@@ -13,6 +13,9 @@ const App = (() => {
         // Start particle background
         ParticleSystem.init();
 
+        // Init chatbot
+        Chatbot.init();
+
         // Connect to backend WebSocket
         connectToBackend();
 
