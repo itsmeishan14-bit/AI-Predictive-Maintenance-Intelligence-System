@@ -8,20 +8,16 @@ const App = (() => {
     let updateInterval = null;
     let clockInterval = null;
     let wsConnected = false;
+    let notifOpen = false;
 
     function init() {
-        // Start particle background
         ParticleSystem.init();
-
-        // Init chatbot
         Chatbot.init();
-
-        // Connect to backend WebSocket
         connectToBackend();
-
         navigateTo('dashboard');
         startLiveUpdates();
         startClock();
+        setupNotifications();
 
         // Welcome toasts
         setTimeout(() => {
@@ -33,14 +29,130 @@ const App = (() => {
             SoundFX.alertBeep();
         }, 6000);
 
-        // Enable audio context on first interaction
         document.addEventListener('click', () => { try { SoundFX.hoverClick(); } catch (e) { } }, { once: true });
+
+        // Close notification panel on outside click
+        document.addEventListener('click', (e) => {
+            const panel = document.getElementById('notif-panel');
+            const btn = document.getElementById('btn-notifications');
+            if (notifOpen && panel && !panel.contains(e.target) && !btn.contains(e.target)) {
+                closeNotifications();
+            }
+        });
     }
 
+    // ── Notification Panel ──
+    function setupNotifications() {
+        const btn = document.getElementById('btn-notifications');
+        if (btn) {
+            btn.onclick = toggleNotifications;
+        }
+        // Create the panel
+        const header = document.querySelector('.main-header');
+        if (header) {
+            const panel = document.createElement('div');
+            panel.id = 'notif-panel';
+            panel.className = 'notif-panel';
+            panel.innerHTML = `
+        <div class="notif-header">
+          <span class="notif-header-title">Notifications</span>
+          <button class="notif-clear-btn" onclick="App.clearNotifications()">Clear All</button>
+        </div>
+        <div class="notif-list" id="notif-list">
+          <div class="notif-empty">No new notifications</div>
+        </div>
+      `;
+            header.appendChild(panel);
+        }
+        // Load initial alerts
+        loadNotifications();
+    }
+
+    async function loadNotifications() {
+        const res = await API.alerts.list();
+        if (!res?.success) return;
+        const unack = res.data.filter(a => !a.acknowledged).slice(0, 8);
+        renderNotifications(unack);
+        // Update badge count
+        updateNotifBadge(unack.length);
+    }
+
+    function renderNotifications(alerts) {
+        const list = document.getElementById('notif-list');
+        if (!list) return;
+        if (!alerts.length) {
+            list.innerHTML = '<div class="notif-empty">No new notifications</div>';
+            return;
+        }
+        list.innerHTML = alerts.map(a => {
+            const icon = a.type === 'critical' ? '🔴' : a.type === 'warning' ? '⚠️' : 'ℹ️';
+            const timeAgo = getTimeAgo(a.time);
+            return `
+        <div class="notif-item ${a.type}" onclick="App.handleNotifClick('${a.machine}', '${a.id}')">
+          <span class="notif-icon">${icon}</span>
+          <div class="notif-body">
+            <div class="notif-title">${a.title}</div>
+            <div class="notif-meta">${a.machine} · ${timeAgo}</div>
+          </div>
+        </div>
+      `;
+        }).join('');
+    }
+
+    function toggleNotifications() {
+        notifOpen = !notifOpen;
+        const panel = document.getElementById('notif-panel');
+        if (panel) panel.classList.toggle('open', notifOpen);
+        if (notifOpen) {
+            loadNotifications();
+            SoundFX.hoverClick();
+        }
+    }
+
+    function closeNotifications() {
+        notifOpen = false;
+        const panel = document.getElementById('notif-panel');
+        if (panel) panel.classList.remove('open');
+    }
+
+    function clearNotifications() {
+        const list = document.getElementById('notif-list');
+        if (list) list.innerHTML = '<div class="notif-empty">All caught up! ✅</div>';
+        updateNotifBadge(0);
+        closeNotifications();
+    }
+
+    function updateNotifBadge(count) {
+        const badge = document.querySelector('.header-btn-badge');
+        if (badge) {
+            badge.style.display = count > 0 ? 'block' : 'none';
+        }
+        // Also update sidebar alert badge
+        const navBadge = document.querySelector('.nav-item[data-view="alerts"] .nav-item-badge');
+        if (navBadge) navBadge.textContent = count;
+    }
+
+    function handleNotifClick(machineId, alertId) {
+        closeNotifications();
+        if (machineId) {
+            showMachineDetail(machineId);
+        }
+        // Acknowledge
+        API.alerts.acknowledge(alertId);
+    }
+
+    function getTimeAgo(ts) {
+        const diff = Date.now() - ts;
+        if (diff < 60000) return 'just now';
+        if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+        if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+        return Math.floor(diff / 86400000) + 'd ago';
+    }
+
+    // ── WebSocket ──
     function connectToBackend() {
         API.connectWS();
 
-        // WebSocket event handlers
         API.on('ws:connected', () => {
             wsConnected = true;
             console.log('[App] Backend WebSocket connected');
@@ -49,34 +161,23 @@ const App = (() => {
 
         API.on('ws:disconnected', () => {
             wsConnected = false;
-            console.log('[App] Backend WebSocket disconnected');
         });
 
-        // Handle live data updates from backend
         API.on('ws:live_update', (data) => {
-            if (currentView === 'dashboard') {
-                updateDashboardFromWS(data);
-            }
+            if (currentView === 'dashboard') updateDashboardFromWS(data);
         });
 
-        // Handle new alerts from backend
         API.on('ws:new_alert', (alert) => {
             SoundFX.alertBeep();
             Animations.showToast(
                 `${alert.type === 'critical' ? '🔴' : '⚠️'} ${alert.title} — ${alert.machine}`,
                 alert.type === 'critical' ? 'critical' : 'warning'
             );
-            // Update badge
-            const badge = document.querySelector('.nav-item-badge');
-            if (badge) {
-                badge.textContent = parseInt(badge.textContent || '0') + 1;
-            }
+            loadNotifications(); // Refresh notification panel
         });
 
-        // Handle inference results from backend
         API.on('ws:inference_result', (result) => {
             SoundFX.predictionBeep();
-            console.log('[App] Inference result:', result?.machineId, result?.confidence + '%');
         });
     }
 
@@ -103,25 +204,24 @@ const App = (() => {
 
     function navigateTo(view) {
         cleanup(currentView);
+        closeNotifications();
         currentView = view;
 
-        // Update nav
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         const activeNav = document.querySelector(`.nav-item[data-view="${view}"]`);
         if (activeNav) activeNav.classList.add('active');
 
-        // Update header
         const titles = {
             dashboard: 'Dashboard',
             machines: 'Machine Fleet',
             analytics: 'Predictive Analytics',
             alerts: 'Alert Center',
-            ai: 'AI Model Insights'
+            ai: 'AI Model Insights',
+            agent: 'Autonomous AI Agent'
         };
         const headerTitle = document.getElementById('header-title');
         if (headerTitle) headerTitle.textContent = titles[view] || 'Dashboard';
 
-        // Show view
         document.querySelectorAll('.view-page').forEach(p => p.classList.remove('active'));
         const viewEl = document.getElementById(`view-${view}`);
         if (viewEl) viewEl.classList.add('active');
@@ -129,27 +229,22 @@ const App = (() => {
         document.querySelector('.page-content')?.scrollTo(0, 0);
         SoundFX.hoverClick();
 
-        // Render
         switch (view) {
             case 'dashboard': Dashboard.render(); break;
             case 'machines': Machines.render(); break;
             case 'analytics': Predictions.render(); break;
             case 'alerts': Alerts.render(); break;
             case 'ai': AIInsights.render(); break;
+            case 'agent': AIAgent.render(); break;
         }
     }
 
     function cleanup(view) {
         switch (view) {
-            case 'ai':
-                if (typeof AIInsights !== 'undefined') AIInsights.cleanup();
-                break;
-            case 'machines':
-                if (typeof DigitalTwin !== 'undefined') DigitalTwin.destroy();
-                break;
-            case 'dashboard':
-                if (typeof SystemStatus !== 'undefined') SystemStatus.destroy();
-                break;
+            case 'ai': if (typeof AIInsights !== 'undefined') AIInsights.cleanup(); break;
+            case 'machines': if (typeof DigitalTwin !== 'undefined') DigitalTwin.destroy(); break;
+            case 'dashboard': if (typeof SystemStatus !== 'undefined') SystemStatus.destroy(); break;
+            case 'agent': if (typeof AIAgent !== 'undefined') AIAgent.cleanup(); break;
         }
     }
 
@@ -161,19 +256,16 @@ const App = (() => {
     function startLiveUpdates() {
         updateInterval = setInterval(() => {
             if (currentView === 'dashboard' && !wsConnected) {
-                // Fallback to local data if WebSocket isn't connected
                 updateDashboardReadings();
             }
             SoundFX.dataFlowTick();
         }, 3000);
     }
 
-    // Update dashboard from WebSocket data
     function updateDashboardFromWS(data) {
         if (!data || !data.readings) return;
         const grid = document.getElementById('machine-fleet-grid');
         if (!grid) return;
-
         grid.querySelectorAll('.machine-card').forEach(card => {
             const sensors = card.querySelectorAll('.sensor-mini-value');
             if (sensors.length >= 4) {
@@ -194,7 +286,6 @@ const App = (() => {
         });
     }
 
-    // Local fallback update
     function updateDashboardReadings() {
         const grid = document.getElementById('machine-fleet-grid');
         if (!grid) return;
@@ -220,8 +311,7 @@ const App = (() => {
         });
     }
 
-    return { init, navigateTo, showMachineDetail };
+    return { init, navigateTo, showMachineDetail, handleNotifClick, clearNotifications };
 })();
 
-// Boot
 document.addEventListener('DOMContentLoaded', App.init);

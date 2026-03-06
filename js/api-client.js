@@ -148,6 +148,7 @@ const API = (() => {
     }
 
     return {
+        get, post, put,
         machines, predictions, alerts, system,
         connectWS, sendWS, disconnectWS,
         on, off
