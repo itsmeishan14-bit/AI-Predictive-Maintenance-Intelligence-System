@@ -1,0 +1,422 @@
+/* ============================================
+   FUTURISTIC — Holo Cards, Neon, System Status
+   ============================================ */
+
+/* ── System Status Panel ── */
+.sys-panel {
+    background: rgba(8, 12, 28, 0.85);
+    border: 1px solid rgba(0, 229, 255, 0.12);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    backdrop-filter: blur(20px);
+}
+
+.sys-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.sys-panel-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-cyan);
+}
+
+.sys-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.sys-status-dot.online {
+    background: var(--accent-emerald);
+    box-shadow: 0 0 8px rgba(0, 230, 118, 0.5);
+    animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.sys-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sys-metric {
+    position: relative;
+}
+
+.sys-metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 0;
+}
+
+.sys-metric-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.sys-metric-value {
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+}
+
+.sys-metric-bar-wrap {
+    height: 3px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+
+.sys-metric-bar {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue));
+    transition: width 1s ease;
+}
+
+.sys-metric-bar.confidence {
+    background: linear-gradient(90deg, var(--accent-emerald), #69f0ae);
+}
+
+/* ── Holographic Cards ── */
+.holo-card {
+    background: rgba(10, 16, 35, 0.7);
+    border: 1px solid rgba(0, 229, 255, 0.08);
+    border-radius: var(--radius-lg);
+    backdrop-filter: blur(24px);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.holo-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: conic-gradient(from 0deg, transparent, rgba(0, 229, 255, 0.03), transparent, rgba(246, 55, 236, 0.02), transparent);
+    animation: holo-rotate 8s linear infinite;
+    pointer-events: none;
+}
+
+.holo-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-lg);
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(0, 229, 255, 0.1), transparent, rgba(246, 55, 236, 0.08));
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+.holo-card:hover {
+    transform: translateY(-4px) scale(1.01);
+    border-color: rgba(0, 229, 255, 0.2);
+    box-shadow: 0 8px 40px rgba(0, 229, 255, 0.1), 0 0 60px rgba(0, 229, 255, 0.03);
+}
+
+@keyframes holo-rotate {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* ── Neon Text Glow ── */
+.neon-text {
+    text-shadow: 0 0 7px currentColor, 0 0 20px currentColor, 0 0 42px currentColor;
+}
+
+.neon-glow-cyan {
+    box-shadow: 0 0 5px rgba(0, 229, 255, 0.15), 0 0 20px rgba(0, 229, 255, 0.05), inset 0 0 12px rgba(0, 229, 255, 0.03);
+}
+
+.neon-glow-magenta {
+    box-shadow: 0 0 5px rgba(246, 55, 236, 0.15), 0 0 20px rgba(246, 55, 236, 0.05), inset 0 0 12px rgba(246, 55, 236, 0.03);
+}
+
+.neon-glow-emerald {
+    box-shadow: 0 0 5px rgba(0, 230, 118, 0.15), 0 0 20px rgba(0, 230, 118, 0.05), inset 0 0 12px rgba(0, 230, 118, 0.03);
+}
+
+/* ── Floating / Hovering Effect ── */
+.float-hover {
+    animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+/* ── Predictive Timeline ── */
+.timeline-track {
+    display: flex;
+    align-items: center;
+    padding: 20px 0;
+    gap: 0;
+    overflow-x: auto;
+}
+
+.timeline-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 100px;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.timeline-node-dot {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    z-index: 2;
+    border: 2px solid transparent;
+    transition: all 0.3s;
+}
+
+.timeline-node-dot.active {
+    animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.timeline-node.healthy .timeline-node-dot {
+    background: rgba(0, 230, 118, 0.15);
+    border-color: rgba(0, 230, 118, 0.4);
+}
+
+.timeline-node.warning .timeline-node-dot {
+    background: rgba(255, 179, 0, 0.15);
+    border-color: rgba(255, 179, 0, 0.4);
+}
+
+.timeline-node.critical .timeline-node-dot {
+    background: rgba(255, 61, 113, 0.15);
+    border-color: rgba(255, 61, 113, 0.4);
+}
+
+.timeline-node.failure .timeline-node-dot {
+    background: rgba(255, 61, 113, 0.25);
+    border-color: rgba(255, 61, 113, 0.6);
+}
+
+.timeline-node-label {
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 8px;
+}
+
+.timeline-node.healthy .timeline-node-label {
+    color: var(--accent-emerald);
+}
+
+.timeline-node.warning .timeline-node-label {
+    color: var(--accent-amber);
+}
+
+.timeline-node.critical .timeline-node-label {
+    color: var(--accent-red);
+}
+
+.timeline-node.failure .timeline-node-label {
+    color: var(--accent-red);
+}
+
+.timeline-node-time {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    margin-top: 2px;
+}
+
+.timeline-connector {
+    flex: 1;
+    height: 2px;
+    min-width: 40px;
+    position: relative;
+}
+
+.timeline-connector-line {
+    height: 100%;
+    border-radius: 1px;
+}
+
+.timeline-connector.past .timeline-connector-line {
+    background: var(--accent-emerald);
+}
+
+.timeline-connector.future .timeline-connector-line {
+    background: linear-gradient(90deg, rgba(255, 179, 0, 0.4), rgba(255, 61, 113, 0.3));
+}
+
+.timeline-connector.future {
+    background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.1) 6px, transparent 6px, transparent 12px);
+}
+
+/* ── Digital Twin Container ── */
+.digital-twin-canvas {
+    width: 100%;
+    height: 280px;
+    background: rgba(5, 10, 25, 0.8);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(0, 229, 255, 0.08);
+    position: relative;
+    overflow: hidden;
+}
+
+/* ── Neural Viz Container ── */
+.neural-viz-canvas {
+    width: 100%;
+    height: 300px;
+    background: rgba(5, 8, 22, 0.9);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(0, 229, 255, 0.06);
+    position: relative;
+}
+
+/* ── Waveform Display ── */
+.waveform-container {
+    height: 60px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    position: relative;
+}
+
+/* ── RUL Countdown ── */
+.rul-countdown {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+.rul-countdown-value {
+    font-size: 28px;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    color: var(--accent-cyan);
+    min-width: 80px;
+}
+
+.rul-countdown-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.rul-countdown-unit {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+/* ── Anomaly Gauge ── */
+.anomaly-gauge-wrap {
+    position: relative;
+    width: 120px;
+    height: 120px;
+}
+
+.anomaly-gauge-ring {
+    position: absolute;
+    inset: 0;
+}
+
+.anomaly-gauge-center {
+    position: absolute;
+    inset: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(10, 14, 30, 0.8);
+}
+
+.anomaly-gauge-value {
+    font-size: 22px;
+    font-weight: 800;
+    font-family: var(--font-mono);
+}
+
+.anomaly-gauge-label {
+    font-size: 9px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+/* ── Scanline effect ── */
+.scanline-overlay {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 229, 255, 0.008) 2px, rgba(0, 229, 255, 0.008) 4px);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* ── Breathing border ── */
+.breathing-border {
+    animation: breathe-border 4s ease-in-out infinite;
+}
+
+@keyframes breathe-border {
+
+    0%,
+    100% {
+        border-color: rgba(0, 229, 255, 0.08);
+    }
+
+    50% {
+        border-color: rgba(0, 229, 255, 0.2);
+    }
+}
+
+/* ── Header Breadcrumb ── */
+.header-breadcrumb {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    margin-top: 2px;
+}
+
+/* ── Enhanced section headers ── */
+.section-header .section-title::before {
+    content: '';
+    display: inline-block;
+    width: 3px;
+    height: 16px;
+    background: var(--accent-cyan);
+    border-radius: 2px;
+    margin-right: 10px;
+    vertical-align: middle;
+}

@@ -1,0 +1,119 @@
+/* ============================================
+   DESIGN TOKENS — Predictive Maintenance AI
+   ============================================ */
+
+:root {
+  /* ── Background Palette ── */
+  --bg-primary: #0a0e1a;
+  --bg-secondary: #111827;
+  --bg-tertiary: #1a2235;
+  --bg-card: rgba(17, 24, 39, 0.7);
+  --bg-card-hover: rgba(26, 34, 53, 0.85);
+  --bg-glass: rgba(17, 24, 39, 0.45);
+  --bg-sidebar: rgba(10, 14, 26, 0.95);
+  --bg-modal: rgba(0, 0, 0, 0.6);
+
+  /* ── Accent Colors ── */
+  --accent-cyan: #00e5ff;
+  --accent-cyan-rgb: 0, 229, 255;
+  --accent-magenta: #f637ec;
+  --accent-magenta-rgb: 246, 55, 236;
+  --accent-amber: #ffb300;
+  --accent-amber-rgb: 255, 179, 0;
+  --accent-emerald: #00e676;
+  --accent-emerald-rgb: 0, 230, 118;
+  --accent-red: #ff3d71;
+  --accent-red-rgb: 255, 61, 113;
+  --accent-blue: #536dfe;
+  --accent-blue-rgb: 83, 109, 254;
+  --accent-purple: #b388ff;
+  --accent-purple-rgb: 179, 136, 255;
+
+  /* ── Text Colors ── */
+  --text-primary: #e8eaf6;
+  --text-secondary: #9ea7c0;
+  --text-muted: #5c6580;
+  --text-accent: var(--accent-cyan);
+
+  /* ── Status Colors ── */
+  --status-healthy: var(--accent-emerald);
+  --status-warning: var(--accent-amber);
+  --status-critical: var(--accent-red);
+  --status-offline: var(--text-muted);
+  --status-maintenance: var(--accent-blue);
+
+  /* ── Border ── */
+  --border-color: rgba(255, 255, 255, 0.06);
+  --border-hover: rgba(255, 255, 255, 0.12);
+  --border-glow-cyan: 0 0 15px rgba(var(--accent-cyan-rgb), 0.15);
+  --border-glow-magenta: 0 0 15px rgba(var(--accent-magenta-rgb), 0.15);
+  --border-glow-amber: 0 0 15px rgba(var(--accent-amber-rgb), 0.15);
+  --border-glow-emerald: 0 0 15px rgba(var(--accent-emerald-rgb), 0.15);
+
+  /* ── Typography ── */
+  --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  --fs-xs: 0.6875rem;   /* 11px */
+  --fs-sm: 0.75rem;     /* 12px */
+  --fs-base: 0.875rem;  /* 14px */
+  --fs-md: 1rem;        /* 16px */
+  --fs-lg: 1.125rem;    /* 18px */
+  --fs-xl: 1.5rem;      /* 24px */
+  --fs-2xl: 2rem;       /* 32px */
+  --fs-3xl: 2.5rem;     /* 40px */
+
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  --lh-tight: 1.2;
+  --lh-normal: 1.5;
+  --lh-relaxed: 1.75;
+
+  /* ── Spacing ── */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 0.75rem;
+  --space-base: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4rem;
+
+  /* ── Border Radius ── */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* ── Shadows ── */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 16px 50px rgba(0, 0, 0, 0.6);
+
+  /* ── Glassmorphism ── */
+  --glass-blur: blur(20px);
+  --glass-blur-heavy: blur(40px);
+
+  /* ── Transitions ── */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-slow: 400ms ease;
+  --transition-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ── Z-Index ── */
+  --z-sidebar: 100;
+  --z-header: 90;
+  --z-modal: 200;
+  --z-toast: 300;
+  --z-tooltip: 250;
+
+  /* ── Layout ── */
+  --sidebar-width: 260px;
+  --sidebar-collapsed: 72px;
+  --header-height: 64px;
+}
